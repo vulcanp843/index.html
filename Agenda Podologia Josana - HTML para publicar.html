@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Agenda Podologia Josana</title>
+<meta name="theme-color" content="#b0476a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Agenda Josana">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' fill='%23b0476a'/%3E%3Ctext x='96' y='128' font-size='110' text-anchor='middle' fill='white' font-family='Georgia,serif' font-weight='700'%3EJ%3C/text%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="https://cdn.abacus.ai/images/eb6940d2-db48-410a-8c35-9cb13faaaea5.png">
+<link rel="manifest" id="manifest-link">
+<script>
+  // Configuração de instalação (nome e ícone) gerada aqui mesmo, sem arquivo extra
+  (function () {
+    var icon = "data:image/svg+xml," + encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' fill='#b0476a'/><text x='96' y='128' font-size='110' text-anchor='middle' fill='white' font-family='Georgia,serif' font-weight='700'>J</text></svg>");
+    var m = {
+      name: "Agenda Podologia Josana", short_name: "Agenda Josana", lang: "pt-BR",
+      start_url: location.href.split("#")[0], scope: location.href.split("#")[0].replace(/[^\/]*$/, ""),
+      display: "standalone", background_color: "#fcf1f4", theme_color: "#b0476a",
+      icons: [{ src: icon, sizes: "any", type: "image/svg+xml", purpose: "any" }]
+    };
+    try {
+      var url = URL.createObjectURL(new Blob([JSON.stringify(m)], { type: "application/manifest+json" }));
+      document.getElementById("manifest-link").setAttribute("href", url);
+    } catch (e) {}
+  })();
+</script>
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<script>
+  tailwind.config = { theme: { extend: { fontFamily: {
+    inter: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+    display: ['Fraunces', 'Georgia', 'serif'] } } } };
+</script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400..700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<style>
+  html, body { margin: 0; background: #fff; -webkit-tap-highlight-color: transparent; }
+  button, a { cursor: pointer; }
+  :focus-visible { outline: 2px solid #b0476a; outline-offset: 2px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useMemo, useRef } = React;
+
+const KEY = "agenda_podologia_josana_v2";
+const THEMES = {
+  rosa: { name: "Rosa", m: "#b0476a", d: "#8a3552", s: "#fcf1f4", l: "#f1d6de" },
+  verde: { name: "Verde", m: "#2f7d5b", d: "#215c42", s: "#eff8f3", l: "#cfe8da" },
+  azul: { name: "Azul", m: "#2f6fa8", d: "#21517d", s: "#eff5fb", l: "#cfe0f0" },
+  roxo: { name: "Roxo", m: "#7b4ea3", d: "#5d3a7c", s: "#f6f1fa", l: "#e0d3ec" },
+  terracota: { name: "Terracota", m: "#b2603a", d: "#8b4a2b", s: "#fbf3ee", l: "#efd8c9" },
+  grafite: { name: "Grafite", m: "#44505c", d: "#2d363f", s: "#f2f4f6", l: "#d9dee3" },
+};
+const MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+const DIAS = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
+const brl = (v) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(v) || 0);
+const iso = (d) => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+const addDays = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return iso(d); };
+const fmtDate = (s) => (s ? s.split("-").reverse().join("/") : "");
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const onlyDigits = (s) => (s || "").replace(/\D/g, "");
+
+const IMG = {
+  servicos: "https://cdn.abacus.ai/images/350abf9a-0adc-417d-b3ea-cb99c1f5a111.png",
+  retrato: "https://cdn.abacus.ai/images/eb6940d2-db48-410a-8c35-9cb13faaaea5.png",
+  humanizada: "https://cdn.abacus.ai/images/c6b0a906-27a6-44a1-8ec2-1d528792f905.png",
+  valores: "https://cdn.abacus.ai/images/50583845-ca0c-4a62-8009-cb3bc9075655.png",
+  espicula: "https://cdn.abacus.ai/images/21e2a318-51a1-4e1c-980a-9ce9add02445.png",
+  oleo: "https://cdn.abacus.ai/images/0a77ae1b-b900-4ef5-a0d4-268d3f68f04d.png",
+};
+
+function seed() {
+  const s = [
+    { id: "s1", name: "Desencravar unha (com retorno em 7 dias)", price: 120 },
+    { id: "s2", name: "Remoção de calosidade", price: 50 },
+    { id: "s3", name: "Olho de peixe", price: 50 },
+    { id: "s4", name: "Aplicação de órtese", price: 50 },
+    { id: "s5", name: "Spa dos pés", price: 60 },
+  ];
+  const t = new Date();
+  const clients = [
+    { id: "c1", name: "Maria Aparecida", birth: "1958-" + String(t.getMonth() + 1).padStart(2, "0") + "-" + String(Math.min(28, t.getDate() + 3)).padStart(2, "0"), phone: "(15) 99111-2233", obs: "Diabética. Cuidado redobrado com cortes." },
+    { id: "c2", name: "João Batista", birth: "1971-04-12", phone: "(15) 99222-3344", obs: "Unha encravada no pé direito." },
+    { id: "c3", name: "Helena Souza", birth: "1989-09-30", phone: "(15) 99333-4455", obs: "Alergia a esmalte." },
+  ];
+  const appts = [
+    { id: "a1", clientId: "c1", serviceName: s[4].name, price: 60, date: addDays(0), time: "09:00", obs: "Trazer meias limpas.", paid: false },
+    { id: "a2", clientId: "c2", serviceName: s[0].name, price: 120, date: addDays(0), time: "10:30", obs: "", paid: false },
+    { id: "a3", clientId: "c3", serviceName: s[1].name, price: 50, date: addDays(2), time: "14:00", obs: "", paid: false },
+    { id: "a4", clientId: "c1", serviceName: s[2].name, price: 50, date: addDays(-3), time: "15:00", obs: "", paid: true },
+  ];
+  const cash = [
+    { id: "x1", type: "out", desc: "Materiais descartáveis", value: 85, date: addDays(-2) },
+    { id: "x2", type: "in", desc: "Venda de óleo para unhas", value: 40, date: addDays(-1) },
+  ];
+  const photos = [
+    { id: "p1", src: IMG.retrato, caption: "Enfermeira Podóloga Josana Camargo" },
+    { id: "p2", src: IMG.servicos, caption: "Meus serviços" },
+    { id: "p3", src: IMG.valores, caption: "Tabela de valores" },
+    { id: "p4", src: IMG.humanizada, caption: "Podologia humanizada" },
+    { id: "p5", src: IMG.espicula, caption: "Espícula: alívio imediato" },
+    { id: "p6", src: IMG.oleo, caption: "Óleo poderoso para unhas" },
+  ];
+  return {
+    services: s, clients, appts, cash, photos, theme: "rosa",
+    profile: { name: "Josana Camargo", role: "Enfermeira e Podóloga", whatsapp: "(15) 99604-0953", instagram: "@josanacamargopodologa" },
+  };
+}
+function load() {
+  try { const r = localStorage.getItem(KEY); if (r) return JSON.parse(r); } catch (e) {}
+  return seed();
+}
+
+function monthTotals(db, ym) {
+  let inn = 0, out = 0;
+  db.cash.forEach((c) => { if (c.date.slice(0, 7) === ym) { if (c.type === "in") inn += Number(c.value); else out += Number(c.value); } });
+  db.appts.forEach((a) => { if (a.paid && a.date.slice(0, 7) === ym) inn += Number(a.price); });
+  return { inn, out, bal: inn - out };
+}
+
+function Btn({ children, onClick, kind = "main", className = "", type = "button", disabled }) {
+  const base = "px-4 py-2.5 rounded-xl text-sm font-semibold transition-opacity active:opacity-80 disabled:opacity-40 ";
+  const st = kind === "main" ? { background: "var(--m)", color: "#fff" }
+    : kind === "soft" ? { background: "var(--s)", color: "var(--d)", border: "1px solid var(--l)" }
+    : { background: "#fff", color: "#b91c1c", border: "1px solid #fecaca" };
+  return <button type={type} disabled={disabled} onClick={onClick} style={st} className={base + className}>{children}</button>;
+}
+function Field({ label, children }) {
+  return (
+    <label className="block mb-3">
+      <span className="block text-xs font-semibold mb-1" style={{ color: "var(--d)" }}>{label}</span>
+      {children}
+    </label>
+  );
+}
+const inputCls = "w-full px-3 py-2.5 rounded-xl border text-sm bg-white text-gray-800 outline-none";
+const inputSt = { borderColor: "var(--l)" };
+function Modal({ title, onClose, children }) {
+  useEffect(() => {
+    const h = (e) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, []);
+  return (
+    <div className="fixed inset-0 z-40 flex items-end sm:items-center justify-center" style={{ background: "rgba(0,0,0,0.45)" }} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="bg-white w-full max-w-md rounded-xl p-5 m-0 sm:m-4" style={{ maxHeight: "92vh", overflowY: "auto" }}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-display text-xl font-semibold" style={{ color: "var(--d)" }}>{title}</h3>
+          <button onClick={onClose} className="w-8 h-8 rounded-xl text-gray-500" aria-label="Fechar"><i className="fa-solid fa-xmark"></i></button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+function Empty({ icon, text }) {
+  return (
+    <div className="text-center py-10 text-sm text-gray-500">
+      <i className={"fa-solid " + icon + " text-3xl mb-3 block"} style={{ color: "var(--l)" }}></i>{text}
+    </div>
+  );
+}
+function SectionTitle({ children, right }) {
+  return (
+    <div className="flex items-center justify-between mt-6 mb-3">
+      <h2 className="text-xs uppercase tracking-widest font-bold" style={{ color: "var(--d)" }}>{children}</h2>
+      {right}
+    </div>
+  );
+}
+
+function ClientForm({ initial, onSave, onClose }) {
+  const [f, setF] = useState(initial || { name: "", birth: "", phone: "", obs: "" });
+  const up = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  return (
+    <Modal title={initial ? "Editar cliente" : "Novo cliente"} onClose={onClose}>
+      <Field label="Nome"><input className={inputCls} style={inputSt} value={f.name} onChange={up("name")} placeholder="Nome da cliente" autoFocus /></Field>
+      <Field label="Data de nascimento"><input type="date" className={inputCls} style={inputSt} value={f.birth} onChange={up("birth")} /></Field>
+      <Field label="Telefone / WhatsApp"><input type="tel" className={inputCls} style={inputSt} value={f.phone} onChange={up("phone")} placeholder="(15) 99999-9999" /></Field>
+      <Field label="Observações (saúde, alergias, cuidados)"><textarea rows={3} className={inputCls} style={inputSt} value={f.obs} onChange={up("obs")} placeholder="Ex.: diabética, unha encravada no pé direito..." /></Field>
+      <div className="flex gap-2 justify-end mt-2">
+        <Btn kind="soft" onClick={onClose}>Cancelar</Btn>
+        <Btn disabled={!f.name.trim()} onClick={() => onSave({ ...f, name: f.name.trim() })}>Salvar</Btn>
+      </div>
+    </Modal>
+  );
+}
+
+function ApptForm({ initial, db, defaultDate, onSave, onClose }) {
+  const first = db.services[0];
+  const [f, setF] = useState(initial ? { ...initial, serviceId: "__keep" } : {
+    clientId: db.clients[0] ? db.clients[0].id : "", serviceId: first ? first.id : "__custom",
+    serviceName: first ? first.name : "", price: first ? first.price : 0, date: defaultDate, time: "09:00", obs: "", paid: false,
+  });
+  const up = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  const pickService = (e) => {
+    const v = e.target.value;
+    const s = db.services.find((x) => x.id === v);
+    if (s) setF({ ...f, serviceId: v, serviceName: s.name, price: s.price });
+    else setF({ ...f, serviceId: v });
+  };
+  const custom = f.serviceId === "__custom";
+  return (
+    <Modal title={initial ? "Editar atendimento" : "Novo atendimento"} onClose={onClose}>
+      {db.clients.length === 0 ? (
+        <p className="text-sm text-gray-600 mb-4">Cadastre uma cliente primeiro na aba Clientes.</p>
+      ) : (
+        <>
+          <Field label="Cliente">
+            <select className={inputCls} style={inputSt} value={f.clientId} onChange={up("clientId")}>
+              {db.clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </Field>
+          <Field label="Serviço">
+            <select className={inputCls} style={inputSt} value={f.serviceId} onChange={pickService}>
+              {initial && <option value="__keep">{initial.serviceName} (atual)</option>}
+              {db.services.map((s) => <option key={s.id} value={s.id}>{s.name} - {brl(s.price)}</option>)}
+              <option value="__custom">Outro serviço...</option>
+            </select>
+          </Field>
+          {custom && <Field label="Nome do serviço"><input className={inputCls} style={inputSt} value={f.serviceName} onChange={up("serviceName")} /></Field>}
+          <div className="grid grid-cols-3 gap-2">
+            <div className="col-span-2"><Field label="Data"><input type="date" className={inputCls} style={inputSt} value={f.date} onChange={up("date")} /></Field></div>
+            <Field label="Hora"><input type="time" className={inputCls} style={inputSt} value={f.time} onChange={up("time")} /></Field>
+          </div>
+          <Field label="Valor (R$)"><input type="number" min="0" step="0.01" className={inputCls} style={inputSt} value={f.price} onChange={up("price")} /></Field>
+          <Field label="Observação deste atendimento"><textarea rows={2} className={inputCls} style={inputSt} value={f.obs} onChange={up("obs")} placeholder="Ex.: cliente diabético, unha encravada no pé direito" /></Field>
+        </>
+      )}
+      <div className="flex gap-2 justify-end mt-2">
+        <Btn kind="soft" onClick={onClose}>Cancelar</Btn>
+        <Btn disabled={!f.clientId || !f.date || !(f.serviceName || "").trim()} onClick={() => onSave({ id: f.id || uid(), clientId: f.clientId, serviceName: f.serviceName, price: Number(f.price) || 0, date: f.date, time: f.time, obs: f.obs, paid: !!f.paid })}>Salvar</Btn>
+      </div>
+    </Modal>
+  );
+}
+
+function ApptRow({ a, db, onEdit, onDelete, onTogglePaid }) {
+  const c = db.clients.find((x) => x.id === a.clientId);
+  const wa = c ? onlyDigits(c.phone) : "";
+  return (
+    <div className="bg-white rounded-xl border p-3 mb-2" style={{ borderColor: "var(--l)" }}>
+      <div className="flex gap-3">
+        <div className="text-center shrink-0 w-14 rounded-xl py-2" style={{ background: "var(--s)", color: "var(--d)" }}>
+          <div className="text-base font-bold tabular-nums">{a.time}</div>
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="font-semibold text-gray-800 truncate">{c ? c.name : "Cliente removida"}</div>
+          <div className="text-sm text-gray-600">{a.serviceName}</div>
+          <div className="text-sm font-semibold tabular-nums" style={{ color: "var(--d)" }}>{brl(a.price)}</div>
+          {a.obs && <div className="text-xs mt-1 px-2 py-1 rounded-xl text-gray-700" style={{ background: "var(--s)" }}><i className="fa-solid fa-note-sticky mr-1" style={{ color: "var(--m)" }}></i>{a.obs}</div>}
+          {c && c.obs && <div className="text-xs mt-1 text-gray-500"><i className="fa-solid fa-heart-pulse mr-1"></i>{c.obs}</div>}
+        </div>
+      </div>
+      <div className="flex flex-wrap gap-2 mt-3">
+        <button onClick={() => onTogglePaid(a)} className="px-3 py-1.5 rounded-xl text-xs font-semibold border" style={a.paid ? { background: "#15803d", color: "#fff", borderColor: "#15803d" } : { background: "#fff", color: "#15803d", borderColor: "#bbf7d0" }}>
+          <i className={"fa-solid " + (a.paid ? "fa-circle-check" : "fa-circle") + " mr-1"}></i>{a.paid ? "Pago" : "Marcar como pago"}
+        </button>
+        <button onClick={() => onEdit(a)} className="px-3 py-1.5 rounded-xl text-xs font-semibold border" style={{ borderColor: "var(--l)", color: "var(--d)" }}><i className="fa-solid fa-pen mr-1"></i>Editar</button>
+        {wa && <a href={"https://wa.me/55" + wa} target="_blank" rel="noreferrer" className="px-3 py-1.5 rounded-xl text-xs font-semibold border" style={{ borderColor: "var(--l)", color: "var(--d)" }}><i className="fa-brands fa-whatsapp mr-1"></i>WhatsApp</a>}
+        <button onClick={() => onDelete(a)} className="px-3 py-1.5 rounded-xl text-xs font-semibold border" style={{ borderColor: "#fecaca", color: "#b91c1c" }}><i className="fa-solid fa-trash mr-1"></i>Apagar</button>
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  const [db, setDb] = useState(load);
+  const [tab, setTab] = useState("inicio");
+  const [agDate, setAgDate] = useState(iso(new Date()));
+  const [cashYM, setCashYM] = useState(iso(new Date()).slice(0, 7));
+  const [year, setYear] = useState(new Date().getFullYear());
+  const [modal, setModal] = useState(null);
+  const [confirm, setConfirm] = useState(null);
+  const [toast, setToast] = useState("");
+  const [search, setSearch] = useState("");
+  const [light, setLight] = useState(null);
+  const [cf, setCf] = useState({ type: "in", desc: "", value: "", date: iso(new Date()) });
+  const fileRef = useRef(null);
+
+  const th = THEMES[db.theme] || THEMES.rosa;
+  const set = (k, v) => setDb((d) => ({ ...d, [k]: typeof v === "function" ? v(d[k]) : v }));
+  const say = (m) => { setToast(m); setTimeout(() => setToast(""), 2200); };
+  const ask = (msg, onYes) => setConfirm({ msg, onYes });
+
+  useEffect(() => {
+    try { localStorage.setItem(KEY, JSON.stringify(db)); }
+    catch (e) { say("Sem espaço para salvar. Remova algumas fotos."); }
+  }, [db]);
+  useEffect(() => {
+    const mt = document.querySelector('meta[name="theme-color"]');
+    if (mt) mt.setAttribute("content", th.m);
+  }, [db.theme]);
+
+  const today = iso(new Date());
+  const ym = today.slice(0, 7);
+  const sortAp = (l) => [...l].sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+
+  const saveAppt = (a) => {
+    set("appts", (l) => (l.some((x) => x.id === a.id) ? l.map((x) => (x.id === a.id ? a : x)) : [...l, a]));
+    setModal(null); setAgDate(a.date); say("Atendimento salvo");
+  };
+  const delAppt = (a) => ask("Apagar este atendimento?", () => { set("appts", (l) => l.filter((x) => x.id !== a.id)); say("Atendimento apagado"); });
+  const togglePaid = (a) => { set("appts", (l) => l.map((x) => (x.id === a.id ? { ...x, paid: !x.paid } : x))); say(a.paid ? "Pagamento desmarcado" : "Pagamento registrado"); };
+
+  const saveClient = (c) => {
+    set("clients", (l) => (c.id ? l.map((x) => (x.id === c.id ? c : x)) : [...l, { ...c, id: uid() }]));
+    setModal(null); say("Cliente salva");
+  };
+  const delClient = (c) => ask("Apagar " + c.name + " e todos os atendimentos dela?", () => {
+    set("clients", (l) => l.filter((x) => x.id !== c.id));
+    set("appts", (l) => l.filter((x) => x.clientId !== c.id));
+    say("Cliente apagada");
+  });
+
+  const addCash = () => {
+    const v = Number(cf.value);
+    if (!cf.desc.trim() || !(v > 0)) { say("Preencha descrição e valor"); return; }
+    set("cash", (l) => [...l, { id: uid(), type: cf.type, desc: cf.desc.trim(), value: v, date: cf.date }]);
+    setCf({ ...cf, desc: "", value: "" }); say("Lançamento salvo");
+  };
+
+  const addPhotos = (files) => {
+    Array.from(files).forEach((file) => {
+      const r = new FileReader();
+      r.onload = () => {
+        const im = new Image();
+        im.onload = () => {
+          const max = 900; const k = Math.min(1, max / Math.max(im.width, im.height));
+          const cv = document.createElement("canvas");
+          cv.width = im.width * k; cv.height = im.height * k;
+          cv.getContext("2d").drawImage(im, 0, 0, cv.width, cv.height);
+          const src = cv.toDataURL("image/jpeg", 0.8);
+          set("photos", (l) => [...l, { id: uid(), src, caption: "Nova foto" }]);
+          say("Foto adicionada");
+        };
+        im.src = r.result;
+      };
+      r.readAsDataURL(file);
+    });
+  };
+
+  const viewInicio = () => {
+    const t = monthTotals(db, ym);
+    const todayList = sortAp(db.appts.filter((a) => a.date === today));
+    const next = sortAp(db.appts.filter((a) => a.date > today)).slice(0, 4);
+    const bdays = db.clients.filter((c) => c.birth && c.birth.slice(5, 7) === ym.slice(5, 7)).sort((a, b) => a.birth.slice(8).localeCompare(b.birth.slice(8)));
+    return (
+      <div>
+        <div className="rounded-xl p-4 text-white" style={{ background: "var(--m)" }}>
+          <div className="text-xs uppercase tracking-widest opacity-90">{MESES[new Date().getMonth()]} de {new Date().getFullYear()}</div>
+          <div className="text-xs mt-3 opacity-90">Saldo do mês</div>
+          <div className="text-3xl font-bold tabular-nums">{brl(t.bal)}</div>
+          <div className="grid grid-cols-2 gap-3 mt-4 pt-3" style={{ borderTop: "1px solid rgba(255,255,255,0.35)" }}>
+            <div><div className="text-xs opacity-90">Entrou</div><div className="font-bold tabular-nums">{brl(t.inn)}</div></div>
+            <div><div className="text-xs opacity-90">Saiu</div><div className="font-bold tabular-nums">{brl(t.out)}</div></div>
+          </div>
+        </div>
+        <SectionTitle right={<button className="text-xs font-semibold" style={{ color: "var(--m)" }} onClick={() => { setAgDate(today); setTab("agenda"); }}>Ver agenda</button>}>Hoje</SectionTitle>
+        {todayList.length === 0 ? <Empty icon="fa-mug-hot" text="Nenhum atendimento hoje." /> :
+          todayList.map((a) => <ApptRow key={a.id} a={a} db={db} onEdit={(x) => setModal({ t: "appt", v: x })} onDelete={delAppt} onTogglePaid={togglePaid} />)}
+        <SectionTitle>Próximos atendimentos</SectionTitle>
+        {next.length === 0 ? <p className="text-sm text-gray-500">Nada marcado para os próximos dias.</p> :
+          <div className="bg-white rounded-xl border divide-y" style={{ borderColor: "var(--l)" }}>
+            {next.map((a) => {
+              const c = db.clients.find((x) => x.id === a.clientId);
+              return (
+                <div key={a.id} className="flex justify-between p-3 text-sm" style={{ borderColor: "var(--l)" }}>
+                  <div><div className="font-semibold text-gray-800">{c ? c.name : "-"}</div><div className="text-gray-500">{a.serviceName}</div></div>
+                  <div className="text-right tabular-nums" style={{ color: "var(--d)" }}><div className="font-semibold">{fmtDate(a.date)}</div><div>{a.time}</div></div>
+                </div>
+              );
+            })}
+          </div>}
+        {bdays.length > 0 && (<>
+          <SectionTitle>Aniversariantes do mês</SectionTitle>
+          <div className="bg-white rounded-xl border divide-y" style={{ borderColor: "var(--l)" }}>
+            {bdays.map((c) => (
+              <div key={c.id} className="flex justify-between p-3 text-sm">
+                <span className="font-semibold text-gray-800"><i className="fa-solid fa-cake-candles mr-2" style={{ color: "var(--m)" }}></i>{c.name}</span>
+                <span className="tabular-nums text-gray-600">dia {c.birth.slice(8)}</span>
+              </div>
+            ))}
+          </div>
+        </>)}
+      </div>
+    );
+  };
+
+  const viewAgenda = () => {
+    const list = sortAp(db.appts.filter((a) => a.date === agDate));
+    const d = new Date(agDate + "T12:00:00");
+    const move = (n) => { const x = new Date(agDate + "T12:00:00"); x.setDate(x.getDate() + n); setAgDate(iso(x)); };
+    return (
+      <div>
+        <div className="flex items-center gap-2 mb-2">
+          <button onClick={() => move(-1)} className="w-10 h-10 rounded-xl border shrink-0" style={{ borderColor: "var(--l)", color: "var(--d)" }} aria-label="Dia anterior"><i className="fa-solid fa-chevron-left"></i></button>
+          <input type="date" value={agDate} onChange={(e) => e.target.value && setAgDate(e.target.value)} className={inputCls + " text-center font-semibold"} style={inputSt} />
+          <button onClick={() => move(1)} className="w-10 h-10 rounded-xl border shrink-0" style={{ borderColor: "var(--l)", color: "var(--d)" }} aria-label="Próximo dia"><i className="fa-solid fa-chevron-right"></i></button>
+        </div>
+        <div className="flex items-center justify-between mb-3">
+          <div className="text-sm font-semibold" style={{ color: "var(--d)" }}>{DIAS[d.getDay()]}, {fmtDate(agDate)} · {list.length} atendimento{list.length === 1 ? "" : "s"}</div>
+          {agDate !== today && <button className="text-xs font-semibold" style={{ color: "var(--m)" }} onClick={() => setAgDate(today)}>Ir para hoje</button>}
+        </div>
+        <Btn className="w-full mb-4" onClick={() => setModal({ t: "appt" })}><i className="fa-solid fa-plus mr-2"></i>Novo atendimento</Btn>
+        {list.length === 0 ? <Empty icon="fa-calendar-day" text="Nenhum atendimento neste dia." /> :
+          list.map((a) => <ApptRow key={a.id} a={a} db={db} onEdit={(x) => setModal({ t: "appt", v: x })} onDelete={delAppt} onTogglePaid={togglePaid} />)}
+      </div>
+    );
+  };
+
+  const viewClientes = () => {
+    const q = search.trim().toLowerCase();
+    const list = db.clients.filter((c) => !q || c.name.toLowerCase().includes(q) || (c.phone || "").includes(q)).sort((a, b) => a.name.localeCompare(b.name));
+    return (
+      <div>
+        <div className="flex gap-2 mb-4">
+          <input className={inputCls} style={inputSt} placeholder="Buscar por nome ou telefone" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <Btn onClick={() => setModal({ t: "client" })}><i className="fa-solid fa-plus"></i></Btn>
+        </div>
+        {list.length === 0 ? <Empty icon="fa-user-plus" text={q ? "Nenhuma cliente encontrada." : "Nenhuma cliente cadastrada."} /> :
+          list.map((c) => {
+            const visits = db.appts.filter((a) => a.clientId === c.id).length;
+            const wa = onlyDigits(c.phone);
+            return (
+              <div key={c.id} className="bg-white rounded-xl border p-3 mb-2" style={{ borderColor: "var(--l)" }}>
+                <div className="flex gap-3">
+                  <div className="w-11 h-11 rounded-xl flex items-center justify-center font-bold shrink-0" style={{ background: "var(--s)", color: "var(--d)" }}>{c.name.slice(0, 1).toUpperCase()}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-gray-800">{c.name}</div>
+                    <div className="text-sm text-gray-600">{c.phone || "Sem telefone"}</div>
+                    <div className="text-xs text-gray-500">{c.birth ? "Nasc.: " + fmtDate(c.birth) : "Sem data de nascimento"} · {visits} atendimento{visits === 1 ? "" : "s"}</div>
+                    {c.obs && <div className="text-xs mt-2 px-2 py-1 rounded-xl text-gray-700" style={{ background: "var(--s)" }}><i className="fa-solid fa-heart-pulse mr-1" style={{ color: "var(--m)" }}></i>{c.obs}</div>}
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-3">
+                  <button onClick={() => setModal({ t: "client", v: c })} className="px-3 py-1.5 rounded-xl text-xs font-semibold border" style={{ borderColor: "var(--l)", color: "var(--d)" }}><i className="fa-solid fa-pen mr-1"></i>Editar</button>
+                  <button onClick={() => setModal({ t: "appt", client: c.id })} className="px-3 py-1.5 rounded-xl text-xs font-semibold border" style={{ borderColor: "var(--l)", color: "var(--d)" }}><i className="fa-solid fa-calendar-plus mr-1"></i>Agendar</button>
+                  {wa && <a href={"https://wa.me/55" + wa} target="_blank" rel="noreferrer" className="px-3 py-1.5 rounded-xl text-xs font-semibold border" style={{ borderColor: "var(--l)", color: "var(--d)" }}><i className="fa-brands fa-whatsapp mr-1"></i>WhatsApp</a>}
+                  <button onClick={() => delClient(c)} className="px-3 py-1.5 rounded-xl text-xs font-semibold border" style={{ borderColor: "#fecaca", color: "#b91c1c" }}><i className="fa-solid fa-trash mr-1"></i>Apagar</button>
+                </div>
+              </div>
+            );
+          })}
+      </div>
+    );
+  };
+
+  const viewCaixa = () => {
+    const [yy, mm] = cashYM.split("-").map(Number);
+    const moveM = (n) => { const d = new Date(yy, mm - 1 + n, 1); setCashYM(iso(d).slice(0, 7)); };
+    const t = monthTotals(db, cashYM);
+    const rows = [
+      ...db.cash.filter((c) => c.date.slice(0, 7) === cashYM).map((c) => ({ ...c, kind: "cash" })),
+      ...db.appts.filter((a) => a.paid && a.date.slice(0, 7) === cashYM).map((a) => {
+        const c = db.clients.find((x) => x.id === a.clientId);
+        return { id: a.id, type: "in", desc: (c ? c.name : "Cliente") + " - " + a.serviceName, value: a.price, date: a.date, kind: "appt" };
+      }),
+    ].sort((a, b) => b.date.localeCompare(a.date));
+    return (
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <button onClick={() => moveM(-1)} className="w-10 h-10 rounded-xl border" style={{ borderColor: "var(--l)", color: "var(--d)" }} aria-label="Mês anterior"><i className="fa-solid fa-chevron-left"></i></button>
+          <div className="font-display text-lg font-semibold" style={{ color: "var(--d)" }}>{MESES[mm - 1]} de {yy}</div>
+          <button onClick={() => moveM(1)} className="w-10 h-10 rounded-xl border" style={{ borderColor: "var(--l)", color: "var(--d)" }} aria-label="Próximo mês"><i className="fa-solid fa-chevron-right"></i></button>
+        </div>
+        <div className="grid grid-cols-3 gap-2 mb-4">
+          {[["Entrou", t.inn, "#15803d"], ["Saiu", t.out, "#b91c1c"], ["Saldo", t.bal, "var(--d)"]].map(([l, v, c]) => (
+            <div key={l} className="bg-white border rounded-xl p-3 text-center" style={{ borderColor: "var(--l)" }}>
+              <div className="text-xs text-gray-500">{l}</div>
+              <div className="font-bold text-sm tabular-nums" style={{ color: c }}>{brl(v)}</div>
+            </div>
+          ))}
+        </div>
+        <div className="rounded-xl p-3 mb-4" style={{ background: "var(--s)", border: "1px solid var(--l)" }}>
+          <div className="flex gap-2 mb-3">
+            {[["in", "Entrada"], ["out", "Saída / gasto"]].map(([k, l]) => (
+              <button key={k} onClick={() => setCf({ ...cf, type: k })} className="flex-1 py-2 rounded-xl text-sm font-semibold border" style={cf.type === k ? { background: "var(--m)", color: "#fff", borderColor: "var(--m)" } : { background: "#fff", color: "var(--d)", borderColor: "var(--l)" }}>{l}</button>
+            ))}
+          </div>
+          <input className={inputCls + " mb-2"} style={inputSt} placeholder="Descrição (ex.: luvas, aluguel, venda de óleo)" value={cf.desc} onChange={(e) => setCf({ ...cf, desc: e.target.value })} />
+          <div className="grid grid-cols-2 gap-2 mb-3">
+            <input type="number" min="0" step="0.01" className={inputCls} style={inputSt} placeholder="Valor R$" value={cf.value} onChange={(e) => setCf({ ...cf, value: e.target.value })} />
+            <input type="date" className={inputCls} style={inputSt} value={cf.date} onChange={(e) => setCf({ ...cf, date: e.target.value })} />
+          </div>
+          <Btn className="w-full" onClick={addCash}>Lançar</Btn>
+        </div>
+        <p className="text-xs text-gray-500 mb-3">Atendimentos marcados como pagos entram aqui sozinhos como entrada.</p>
+        {rows.length === 0 ? <Empty icon="fa-wallet" text="Nenhum lançamento neste mês." /> :
+          <div className="bg-white rounded-xl border divide-y" style={{ borderColor: "var(--l)" }}>
+            {rows.map((r) => (
+              <div key={r.kind + r.id} className="flex items-center gap-3 p-3 text-sm">
+                <i className={"fa-solid " + (r.type === "in" ? "fa-arrow-down" : "fa-arrow-up")} style={{ color: r.type === "in" ? "#15803d" : "#b91c1c" }}></i>
+                <div className="flex-1 min-w-0"><div className="font-semibold text-gray-800 truncate">{r.desc}</div><div className="text-xs text-gray-500">{fmtDate(r.date)}{r.kind === "appt" ? " · atendimento" : ""}</div></div>
+                <div className="font-bold tabular-nums" style={{ color: r.type === "in" ? "#15803d" : "#b91c1c" }}>{r.type === "in" ? "+" : "-"}{brl(r.value)}</div>
+                {r.kind === "cash" && <button className="text-gray-400" aria-label="Apagar" onClick={() => ask("Apagar este lançamento?", () => { set("cash", (l) => l.filter((x) => x.id !== r.id)); say("Lançamento apagado"); })}><i className="fa-solid fa-trash"></i></button>}
+              </div>
+            ))}
+          </div>}
+      </div>
+    );
+  };
+
+  const viewAno = () => {
+    const counts = {};
+    db.appts.forEach((a) => { counts[a.date] = (counts[a.date] || 0) + 1; });
+    let yi = 0, yo = 0;
+    const months = MESES.map((_, mi) => {
+      const first = new Date(year, mi, 1).getDay();
+      const n = new Date(year, mi + 1, 0).getDate();
+      const key = year + "-" + String(mi + 1).padStart(2, "0");
+      const t = monthTotals(db, key);
+      yi += t.inn; yo += t.out;
+      return { mi, first, n, key, t };
+    });
+    return (
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <button onClick={() => setYear(year - 1)} className="w-10 h-10 rounded-xl border" style={{ borderColor: "var(--l)", color: "var(--d)" }} aria-label="Ano anterior"><i className="fa-solid fa-chevron-left"></i></button>
+          <div className="font-display text-2xl font-semibold tabular-nums" style={{ color: "var(--d)" }}>{year}</div>
+          <button onClick={() => setYear(year + 1)} className="w-10 h-10 rounded-xl border" style={{ borderColor: "var(--l)", color: "var(--d)" }} aria-label="Próximo ano"><i className="fa-solid fa-chevron-right"></i></button>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          {months.map((m) => (
+            <div key={m.mi} className="bg-white border rounded-xl p-2" style={{ borderColor: "var(--l)" }}>
+              <div className="text-xs font-bold mb-1 text-center" style={{ color: "var(--d)" }}>{MESES[m.mi]}</div>
+              <div className="grid grid-cols-7 text-center" style={{ fontSize: 9 }}>
+                {DIAS.map((d, i) => <div key={i} className="text-gray-400">{d.slice(0, 1)}</div>)}
+                {Array.from({ length: m.first }).map((_, i) => <div key={"b" + i}></div>)}
+                {Array.from({ length: m.n }).map((_, i) => {
+                  const ds = m.key + "-" + String(i + 1).padStart(2, "0");
+                  const has = counts[ds];
+                  const isT = ds === today;
+                  return (
+                    <button key={i} onClick={() => { setAgDate(ds); setTab("agenda"); }} className="py-0.5 rounded-sm tabular-nums" style={has ? { background: "var(--m)", color: "#fff", fontWeight: 700 } : isT ? { border: "1px solid var(--m)", color: "var(--d)", fontWeight: 700 } : { color: "#4b5563" }}>{i + 1}</button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-gray-500 mt-2">Dias coloridos têm atendimento. Toque em um dia para abrir a agenda dele.</p>
+        <SectionTitle>Resumo do ano</SectionTitle>
+        <div className="grid grid-cols-4 gap-1 px-2.5 mb-1 text-gray-400" style={{ fontSize: 10 }}><span>Mês</span><span>Entrou</span><span>Saiu</span><span className="text-right">Saldo</span></div>
+        <div className="bg-white rounded-xl border divide-y" style={{ borderColor: "var(--l)" }}>
+          {months.map((m) => (
+            <div key={m.mi} className="grid grid-cols-4 gap-1 p-2.5 text-xs tabular-nums">
+              <span className="font-semibold text-gray-800">{MESES[m.mi].slice(0, 3)}</span>
+              <span style={{ color: "#15803d" }}>{brl(m.t.inn)}</span>
+              <span style={{ color: "#b91c1c" }}>{brl(m.t.out)}</span>
+              <span className="text-right font-bold" style={{ color: "var(--d)" }}>{brl(m.t.bal)}</span>
+            </div>
+          ))}
+          <div className="grid grid-cols-4 gap-1 p-2.5 text-xs font-bold tabular-nums" style={{ background: "var(--s)" }}>
+            <span>Total</span><span style={{ color: "#15803d" }}>{brl(yi)}</span><span style={{ color: "#b91c1c" }}>{brl(yo)}</span><span className="text-right" style={{ color: "var(--d)" }}>{brl(yi - yo)}</span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const viewServicos = () => (
+    <div>
+      <div className="rounded-xl p-4 mb-4" style={{ background: "var(--s)", border: "1px solid var(--l)" }}>
+        <div className="font-display text-xl font-semibold" style={{ color: "var(--d)" }}>{db.profile.name}</div>
+        <div className="text-sm text-gray-600">{db.profile.role}</div>
+        <div className="flex flex-wrap gap-3 mt-3 text-sm" style={{ color: "var(--d)" }}>
+          {db.profile.whatsapp && <a href={"https://wa.me/55" + onlyDigits(db.profile.whatsapp)} target="_blank" rel="noreferrer" className="font-semibold"><i className="fa-brands fa-whatsapp mr-1"></i>{db.profile.whatsapp}</a>}
+          {db.profile.instagram && <a href={"https://instagram.com/" + db.profile.instagram.replace("@", "")} target="_blank" rel="noreferrer" className="font-semibold"><i className="fa-brands fa-instagram mr-1"></i>{db.profile.instagram}</a>}
+        </div>
+      </div>
+      <SectionTitle>Tabela de valores</SectionTitle>
+      {db.services.length === 0 ? <p className="text-sm text-gray-500">Cadastre serviços em Ajustes.</p> :
+        <div className="bg-white rounded-xl border divide-y" style={{ borderColor: "var(--l)" }}>
+          {db.services.map((s) => (
+            <div key={s.id} className="flex justify-between gap-3 p-3 text-sm">
+              <span className="text-gray-800">{s.name}</span>
+              <span className="font-bold tabular-nums shrink-0" style={{ color: "var(--d)" }}>{brl(s.price)}</span>
+            </div>
+          ))}
+        </div>}
+      <SectionTitle>Fotos e trabalhos</SectionTitle>
+      {db.photos.length === 0 ? <Empty icon="fa-images" text="Adicione fotos em Ajustes." /> :
+        <div className="grid grid-cols-2 gap-3">
+          {db.photos.map((p) => (
+            <button key={p.id} onClick={() => setLight(p)} className="text-left bg-white border rounded-xl overflow-hidden" style={{ borderColor: "var(--l)" }}>
+              <img src={p.src} alt={p.caption} className="w-full object-cover" style={{ aspectRatio: "2 / 3" }} />
+              <div className="p-2 text-xs font-semibold text-gray-700">{p.caption}</div>
+            </button>
+          ))}
+        </div>}
+    </div>
+  );
+
+  const viewAjustes = () => (
+    <div>
+      <SectionTitle>Cores do aplicativo</SectionTitle>
+      <div className="grid grid-cols-3 gap-2">
+        {Object.entries(THEMES).map(([k, t]) => (
+          <button key={k} onClick={() => { set("theme", k); say("Cor alterada"); }} className="rounded-xl p-2 border text-center text-xs font-semibold" style={{ borderColor: db.theme === k ? t.m : "#e5e7eb", borderWidth: db.theme === k ? 2 : 1, color: t.d, background: t.s }}>
+            <div className="w-full h-6 rounded-xl mb-1" style={{ background: t.m }}></div>{t.name}
+          </button>
+        ))}
+      </div>
+
+      <SectionTitle right={<button className="text-xs font-semibold" style={{ color: "var(--m)" }} onClick={() => set("services", (l) => [...l, { id: uid(), name: "Novo serviço", price: 0 }])}><i className="fa-solid fa-plus mr-1"></i>Adicionar</button>}>Serviços e valores</SectionTitle>
+      <p className="text-xs text-gray-500 mb-2">Mude o nome e o preço direto nos campos. Vale para os próximos agendamentos; os já marcados não mudam.</p>
+      {db.services.map((s) => (
+        <div key={s.id} className="flex gap-2 mb-2">
+          <input className={inputCls} style={inputSt} value={s.name} onChange={(e) => set("services", (l) => l.map((x) => (x.id === s.id ? { ...x, name: e.target.value } : x)))} />
+          <input type="number" min="0" step="0.01" className={inputCls} style={{ ...inputSt, width: 100, flexShrink: 0 }} value={s.price} onChange={(e) => set("services", (l) => l.map((x) => (x.id === s.id ? { ...x, price: e.target.value === "" ? "" : Number(e.target.value) } : x)))} />
+          <button className="px-2 text-gray-400" aria-label="Apagar serviço" onClick={() => ask("Apagar o serviço " + s.name + "?", () => set("services", (l) => l.filter((x) => x.id !== s.id)))}><i className="fa-solid fa-trash"></i></button>
+        </div>
+      ))}
+
+      <SectionTitle>Meus dados</SectionTitle>
+      {[["name", "Nome"], ["role", "Profissão"], ["whatsapp", "WhatsApp"], ["instagram", "Instagram"]].map(([k, l]) => (
+        <Field key={k} label={l}><input className={inputCls} style={inputSt} value={db.profile[k]} onChange={(e) => set("profile", (p) => ({ ...p, [k]: e.target.value }))} /></Field>
+      ))}
+
+      <SectionTitle right={<button className="text-xs font-semibold" style={{ color: "var(--m)" }} onClick={() => fileRef.current && fileRef.current.click()}><i className="fa-solid fa-plus mr-1"></i>Adicionar foto</button>}>Fotos</SectionTitle>
+      <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={(e) => { addPhotos(e.target.files); e.target.value = ""; }} />
+      {db.photos.map((p) => (
+        <div key={p.id} className="flex gap-2 items-center mb-2">
+          <img src={p.src} alt={p.caption} className="w-12 h-16 object-cover rounded-xl shrink-0" />
+          <input className={inputCls} style={inputSt} value={p.caption} onChange={(e) => set("photos", (l) => l.map((x) => (x.id === p.id ? { ...x, caption: e.target.value } : x)))} />
+          <button className="px-2 text-gray-400" aria-label="Remover foto" onClick={() => ask("Remover esta foto?", () => set("photos", (l) => l.filter((x) => x.id !== p.id)))}><i className="fa-solid fa-trash"></i></button>
+        </div>
+      ))}
+
+      <SectionTitle>Dados do aplicativo</SectionTitle>
+      <Btn kind="danger" className="w-full mb-2" onClick={() => ask("Apagar clientes, agenda e caixa de exemplo para começar do zero? Serviços, fotos e dados pessoais ficam.", () => { setDb((d) => ({ ...d, clients: [], appts: [], cash: [] })); say("Pronto, tudo zerado"); })}>Apagar dados de exemplo e começar do zero</Btn>
+      <p className="text-xs text-gray-500 mt-3">Os dados ficam salvos só neste aparelho, no navegador. Se limpar os dados do navegador ou trocar de celular, tudo é perdido.</p>
+    </div>
+  );
+
+  const TABS = [
+    ["inicio", "Início", "fa-house"], ["agenda", "Agenda", "fa-calendar-check"], ["clientes", "Clientes", "fa-users"],
+    ["caixa", "Caixa", "fa-wallet"], ["ano", "Ano", "fa-calendar"], ["servicos", "Serviços", "fa-images"], ["ajustes", "Ajustes", "fa-gear"],
+  ];
+  const views = { inicio: viewInicio, agenda: viewAgenda, clientes: viewClientes, caixa: viewCaixa, ano: viewAno, servicos: viewServicos, ajustes: viewAjustes };
+
+  return (
+    <div className="min-h-screen font-inter text-gray-800" style={{ background: "#fff", "--m": th.m, "--d": th.d, "--s": th.s, "--l": th.l }}>
+      <div className="max-w-xl mx-auto" style={{ paddingBottom: 84 }}>
+        <header className="px-4 pt-5 pb-3 flex items-center gap-3" style={{ background: "var(--s)", borderBottom: "1px solid var(--l)" }}>
+          <img src={IMG.retrato} alt="Josana Camargo" className="w-12 h-12 rounded-xl object-cover" style={{ objectPosition: "50% 30%" }} />
+          <div className="flex-1 min-w-0">
+            <div className="font-display text-xl font-semibold leading-tight truncate" style={{ color: "var(--d)" }}>{db.profile.name}</div>
+            <div className="text-xs text-gray-600 truncate">{db.profile.role} · Agenda</div>
+          </div>
+          <button onClick={() => setTab("ajustes")} className="w-10 h-10 rounded-xl border bg-white" style={{ borderColor: "var(--l)", color: "var(--d)" }} aria-label="Ajustes"><i className="fa-solid fa-gear"></i></button>
+        </header>
+        <main className="px-4 pt-4">{views[tab]()}</main>
+      </div>
+
+      <nav className="fixed bottom-0 left-0 right-0 bg-white z-30" style={{ borderTop: "1px solid var(--l)", paddingBottom: "env(safe-area-inset-bottom)" }}>
+        <div className="max-w-xl mx-auto grid grid-cols-7">
+          {TABS.map(([k, l, ic]) => (
+            <button key={k} onClick={() => { setTab(k); window.scrollTo(0, 0); }} className="py-2 flex flex-col items-center gap-0.5" style={{ color: tab === k ? "var(--m)" : "#6b7280", fontWeight: tab === k ? 700 : 500 }}>
+              <i className={"fa-solid " + ic + " text-base"}></i>
+              <span style={{ fontSize: 10 }}>{l}</span>
+            </button>
+          ))}
+        </div>
+      </nav>
+
+      {modal && modal.t === "appt" && (
+        <ApptForm initial={modal.v} db={modal.client ? { ...db, clients: [db.clients.find((c) => c.id === modal.client), ...db.clients.filter((c) => c.id !== modal.client)] } : db} defaultDate={agDate} onSave={saveAppt} onClose={() => setModal(null)} />
+      )}
+      {modal && modal.t === "client" && <ClientForm initial={modal.v} onSave={saveClient} onClose={() => setModal(null)} />}
+
+      {confirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.5)" }}>
+          <div className="bg-white rounded-xl p-5 w-full max-w-sm">
+            <p className="text-sm text-gray-800 mb-4">{confirm.msg}</p>
+            <div className="flex gap-2 justify-end">
+              <Btn kind="soft" onClick={() => setConfirm(null)}>Cancelar</Btn>
+              <Btn onClick={() => { confirm.onYes(); setConfirm(null); }}>Sim, apagar</Btn>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {light && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.88)" }} onClick={() => setLight(null)}>
+          <img src={light.src} alt={light.caption} className="rounded-xl object-contain" style={{ maxHeight: "82vh", maxWidth: "100%" }} />
+          <div className="text-white text-sm mt-3">{light.caption}</div>
+          <div className="text-xs mt-1" style={{ color: "#d1d5db" }}>Toque para fechar</div>
+        </div>
+      )}
+
+      {toast && <div className="fixed left-1/2 z-50 px-4 py-2 rounded-xl text-sm text-white" style={{ bottom: 92, transform: "translateX(-50%)", background: "#1f2937" }}>{toast}</div>}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
